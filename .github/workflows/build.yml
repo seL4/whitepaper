@@ -15,4 +15,6 @@ jobs:
       run: |
         sudo apt-get install texlive-latex-extra texlive-fonts-extra
     - name: Build paper
-      run: make
+      run: |
+        touch references.bib
+        make
