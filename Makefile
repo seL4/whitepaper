@@ -7,9 +7,9 @@
 #
 # For usage hints, "make help"
 #
-#  To create a LaTeX diff against the hg "tip" revision, use the target
+#  To create a LaTeX diff against the git HEAD revision, use the target
 #  "diff" (or "viewdiff").
-#  To use a revision other than "tip", speciff DIFF=x on the
+#  To use a revision other than HEAD, speciff DIFF=x on the
 #  make command line to choose the revision x.
 #
 
@@ -190,7 +190,7 @@ clean:
 
 realclean: clean
 	rm -f *~ *.pdf *.tgz $(Bib)
-	hg revert $(Bib)
+	git checkout $(Bib)
 
 tar:	realclean
 	( p=`pwd` && d=`basename "$$p"` && cd .. && \
@@ -206,13 +206,13 @@ help:
 
 ##############################################################################
 
-DIFF ?= tip
+DIFF ?= HEAD
 
 %-diff.dvi: %-diff.tex
 
 %-diff.tex: %.tex FORCE
 	@echo "====> Retrieving revision $(DIFF) of $<"
-	hg cat -r $(DIFF) $<  > $(@:-diff.tex=-$(DIFF)-diff.tex)
+	git show $(DIFF):$<  > $(@:-diff.tex=-$(DIFF)-diff.tex)
 	@echo "====> Creating diff of revision $(DIFF) of $<"
 	$(LaTeXdiff) $(Diffopts) $(@:-diff.tex=-$(DIFF)-diff.tex) $< | \
 	${RmCR} > $@
