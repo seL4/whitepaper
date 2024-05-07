@@ -270,7 +270,6 @@ $(Bib): $(addsuffix .tex, $(Targets))
 		${sed} <tmp.bib > $(Bib) \
 			-e 's/^ *isbn *= *{/  NOisbn = {/' \
 			-e 's/^ *issn *= *{/  NOissn = {/' \
-			-e 's/^ *doi *= *{/  NOdoi = {/' \
 			-e 's/^ *editor *= *{/  NOeditor = {/' \
 			-e 's/^ *paper[uU]rl *=/  url =/'; \
 		cp tmp.aux references.aux; \

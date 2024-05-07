@@ -88,11 +88,7 @@
 
   \newcommand{\gernot}[1]{\Comment{#1 \colorbox{yellow}{[gernot]}}}
 
-  \hypersetup{pdftex,
-                      pagebackref,
-                      hyperindex,
-                      bookmarks,
-                      pdftitle={The seL4 Microkernel -- An Introduction},
+  \hypersetup{pdftitle={The seL4 Microkernel -- An Introduction},
                       pdfauthor={Gernot Heiser},
                       pdfsubject={seL4 Foundation Whitepaper Revision 1.2},
                       pdfkeywords={seL4, microkernel, performance},
@@ -119,7 +115,8 @@
   \author{Gernot Heiser}
 %  \authortitle{Author's title}
   \email{gernot@sel4.systems}
-  \docversion{Revision 1.2 of 2020-06-10}
+%  \docversion{Revision 1.2 of 2020-06-10} % fa89642
+  \docversion{Revision 1.3 of 2024-05-07}
   \date{}
 
   \thispagestyle{plain}
@@ -207,7 +204,7 @@
     in a very strong sense ``bug free'' with respect to its specification.
     In fact, seL4 is the world's
     first OS kernel with such a proof at the code level
-    \citep{Klein_EHA_etal_09}.
+    \citep{Klein_EHACDEEKNSTW_09}.
 
   \item[seL4 is provably secure]\Break
     Besides implementation correctness, seL4 comes with further proofs of
