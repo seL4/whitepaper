@@ -39,6 +39,8 @@ AS         = $(shell which as)
 CC         = $(shell which gcc)
 GnuPlot	   = gnuplot
 Inkscape   = $(shell which inkscape)
+Svg2Eps    = ${Inkscape}
+Svg2Pdf    = ${Inkscape}
 Eps2Pdf	   = epstopdf --outfile
 PdfView	   = xpdf
 Pdf2Ps	   = pdf2ps
@@ -49,7 +51,6 @@ Lpr 	   = lpr
 mv	   = mv
 awk	   = awk
 R	   = R
-ToGray	   = convert -colorspace gray
 
 # Use either "report" or "paper", depending on the template.
 # To add a further target, simply append the basename of the .tex file here
@@ -86,7 +87,7 @@ SVG_Sources = $(wildcard imgs/*.svg)
 R_Sources = $(wildcard imgs/*.r)
 Styles = $(wildcard *.sty)  $(wildcard *.cls)
 Figures = $(Perf_Sources:.perf=.pdf) $(Dia_Sources:.dia=.pdf) $(Fig_Sources:.fig=.pdf) $(SVG_Sources:.svg=.pdf) $(Gnuplot_Sources:.gnuplot=.pdf)  $(R_Sources:.r=.pdf) $(ExtraFigs)
-GreyFigs = $(subst .pdf,-gr.pdf,$(subst imgs/,./,$(wildcard imgs/*.pdf)))
+
 
 Pdf = $(addsuffix .pdf, $(Targets))
 Bib = references.bib
@@ -101,11 +102,6 @@ FORCE: pdf
 ps: $(Ps)
 pdf: $(Figures) Makefile $(Pdf)
 diff_pdf: $(Figures) Makefile $(Diff_Pdf)
-grey:	$(GreyFigs)
-gray:	grey
-
-%-gr.pdf:	imgs/%.pdf
-	${ToGray} $< $@
 
 %.pdf: %.perf ./tools/bargraph.pl
 	@echo $< '->' $@
@@ -121,13 +117,13 @@ gray:	grey
 
 %.eps: %.svg
 	@echo $< '->' $@
-	${Q} $(if ${Inkscape},,echo "You need inkscape installed to build $@" >&2; exit 1)
-	${Q} ${Inkscape} -f $< -D -z -E $@ > /dev/null 2>&1
+	${Q} $(if ${Svg2Eps},,echo "You need inkscape installed to build $@" >&2; exit 1)
+	${Q} ${Svg2Eps} $< -D -E -o $@ > /dev/null 2>&1
 
 %.pdf: %.svg
 	@echo $< '->' $@
-	${Q} $(if ${Inkscape},,echo "You need inkscape installed to build $@" >&2; exit 1)
-	${Q} ${Inkscape} -f $< -D -z -A $@ > /dev/null 2>&1
+	${Q} $(if ${Svg2Pdf},,echo "You need inkscape installed to build $@" >&2; exit 1)
+	${Q} ${Svg2Pdf} $< -D -o $@ > /dev/null 2>&1
 
 # This target allows you to add figures which have the extension .c_pp that
 # correspond to .c sources. Your .c sources can use the lines '/*<*/' and
