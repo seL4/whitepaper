@@ -3,12 +3,10 @@
 
 % Setting this to true turns on the ``draft'' watermark
 \newif \ifDraft         \Draftfalse
-%\Drafttrue
+\Drafttrue
 
 % Note: the draft option marks overfull lines but disables hyperlinks!
 \documentclass[english,a4paper,12pt\ifDraft,draft\fi]{report}
-%\documentclass[a4paper,11pt,titlepage]{article}
-%\Drafttrue
 
 \usepackage[]{sel4}
 \typeout{After loading seL4}
@@ -351,8 +349,17 @@
   resources. What the microkernel mostly provides is isolation,
   sandboxes in which programs can execute without interference from
   other programs. And, critically, it provides a \emph{protected
-    procedure call} mechanism, for  historic reasons called
-  \emph{IPC}. This allows one program to securely call a function in a
+    procedure call} (PPC) mechanism, which is a form of inter-process
+  communication (IPC). For historical reasons the term IPC lives on,
+  but I recommend avoiding it as it leads to misconceptions that
+  result in poor designs.
+
+  \begin{Chilli}
+    For a deeper explanation of what seL4 IPC is and is not, I
+    recommend reading my blog \href{https://microkerneldude.wordpress.com/2019/03/07/how-to-and-how-not-to-use-sel4-ipc/}{How to (and how not to) use seL4 IPC}.
+  \end{Chilli}
+
+  The PPC mechanism allows one program to securely call a function in a
   different program, where the microkernel transports function inputs
   and outputs between the programs and, importantly, enforces
   interfaces: the ``remote'' (contained in a different sandbox)
@@ -360,15 +367,10 @@
   explicitly authorised clients (who have been given the appropriate
   capability, see \autoref{s:caps}).
 
-  \begin{Chilli}
-    For a deeper explanation of what seL4 IPC is and is not, I
-    recommend reading my blog \href{https://microkerneldude.wordpress.com/2019/03/07/how-to-and-how-not-to-use-sel4-ipc/}{How to (and how not to) use seL4 IPC}.
-  \end{Chilli}
-
   The microkernel system uses this approach to provide the services
   the monolithic OS implements in the kernel. In the microkernel
   world, these services are just programs, no different from applications,
-  that run in their own sandboxes, and provide an IPC interface for
+  that run in their own sandboxes, and provide a PPC interface for
   applications to call. Should a server be compromised, that compromise is
   confined to the server, its sandbox protects the rest of the
   system. This is in stark contrast to the monolithic case, where a
@@ -418,21 +420,56 @@
   systems. \href{https://docs.sel4.systems/projects/available-user-components.html}{We
     have a fair number of these}, but much  more is needed.
 
-  An important enabler is a component framework; it allows developers
-  to focus on the code that implements the services, and automates
-  much of the system integration. There are presently two main
-  component frameworks for seL4, both open source: CAmkES and Genode.
+  Even compared to other microkernels, seL4's API is very low-level,
+  with only the minimum abstraction as required to securely manage the
+  hardware. As such, building systems on seL4 is particularly
+  difficult. A good way to look at this is to think of seL4 as the
+  ``assembly language of operating systems'': very primitive.
 
-  \href{https://trustworthy.systems/projects/TS/camkes/}{CAmkES} is a
-  framework that is aimed at embedded and cyber-physical systems,
-  which typically have a static architecture, meaning they consist of
-  a defined set of components that does not change once the system has
-  fully booted up.
+  No-one in their right mind would write a complex system, say a
+  database or web server, in assembly language, we use higher-level
+  programming languages for that. These simplify the task by providing
+  higher-level constructs and abstractions, at the expense of losing
+  some of the power the hardware provides. In almost all cases, that
+  is a winning trade-off.
+
+  Similarly, one should not try to build a complex system directly on
+  seL4, but should use a higher-level framework that provides more
+  appropriate abstractions, at the expense of introducing some policy
+  and taming the power of seL4. Specifically, such a framework should allows developers
+  to focus on the code that implements the services, ignore hardware
+  complexities, and automate
+  much of the system integration.
+
+  There are presently three main
+  component frameworks for seL4, all open source: The Microkit, CAmkES
+  and Genode.
+
+  The \href{https://github.com/seL4/microkit}{seL4 Microkit} reduces
+  the complex seL4 API to literally a handful of simple abstractions,
+  designed around modules called \emph{protection domains}. It also
+  provides a \emph{software development kit} (SDK) that makes it easy
+  to build and integrate separately compiled modules with a kernel
+  binary to produce a bootable image. The Microkit's simplicity is
+  achieved by requiring the system architecture to be static, meaning
+  the set of modules and their communications is defined at system
+  configuration time -- a model that seems to match the requirements
+  of most (if not all) embedded systems, including complex
+  cyberphysical systems such as cars and aircraft.
+
+  \href{https://trustworthy.systems/projects/OLD/camkes/}{CAmkES},
+  a predecessor of the Microkit, is also a component
+  framework for a statically-architected system. Its abstractions are
+  higher level yet more complex than those of the Microkit. It also
+  lacks an SDK, resulting in a much more painful build process that
+  forces use of the kernel's complex build system. CAmkES also
+  introduces significant overheads.
 
   \href{https://genode.org/}{Genode} is in many ways a more powerful
   and general framework, that supports multiple microkernels and
   already comes with a wealth of services and device drivers,
-  especially for x86 platforms. It is arguably more convenient
+  especially for x86 platforms, and does not enforce a static system
+  architecture. It is arguably more convenient
   to work with than CAmkES, and is certainly the way to get a
   complex system up quickly. However, Genode has drawbacks:
   \begin{inparaenum}
@@ -440,8 +477,13 @@
     seL4, Genode is based on the least common denominator. In
     particular, it cannot use all of seL4's security and safety
     features.
-  \item It has no assurance story. More on this in \autoref{s:camkes}.
+  \item It has no assurance story. More on this in \autoref{s:microkit}.
+  \item Genode's seL4 support does not seem to be actively maintained.
   \end{inparaenum}
+
+  For these reasons, the Microkit is the recommended framework for
+  building systems on seL4, at least as long as the static
+  architecture works.
 
   \SSect{seL4 is also a hypervisor}\label{s:hyp}
 
@@ -478,7 +520,7 @@
   A similar setup is shown for the storage service; this time the
   file system is a Linux one running in a VM, while the storage
   driver is native. Again, communication between the components is
-  limited to the minimum channels required. In particular, the app
+  limited to  channels explicitly provided. In particular, the app
   cannot talk to the storage driver (except through the file system),
   and the two Linux systems cannot communicate with each other.
 
@@ -921,16 +963,6 @@
   argument (delegating to the component the right to use the object
   referenced by the capability argument).
 
-  \begin{Chilli}
-    This is a high-level description of what happens at the CAmkES
-    abstraction level. In fact, at the CAmkES level, the capabilities
-    themselves are abstracted away.
-
-    Underneath, the connector is represented by an
-    \emph{endpoint} object, and the client component needs a
-    capability with \code{call} right.
-  \end{Chilli}
-
   It is this fine-grained, object-oriented nature that makes
   capabilities the access-control mechanism of choice for
   security-oriented systems. The rights given to a component can be
@@ -1277,7 +1309,7 @@
   spatially, an approach called \emph{strict time and space
     partitioning} (TSP), exemplified by the
   \href{https://en.wikipedia.org/wiki/ARINC_653}{ARINC~653} avionics
-  standard~\citep{ARINC653}. This means that each component is
+  standard~\citep{ARINC653_12}. This means that each component is
   statically assigned a fixed memory area, and partitions are
   executing according to a pre-determined schedule, with fixed time
   slices.
@@ -1442,7 +1474,7 @@
   should be to identify the critical assets you need to protect. The
   aim should be to minimise this part of your trusted computing base,
   and make it as modular as feasible, with each module becoming an
-  seL4-protected CAmkES component.
+  seL4-protected (Microkit) component.
 
   The other important preparation is to check
   \href{https://docs.sel4.systems/Hardware/}{availability}  and
@@ -1502,7 +1534,8 @@
 
   The next step broke out two components: The particularly untrusted
   camera software was moved to a second VM, also running Linux, with
-  the two Linux VMs communicating via CAmkES channels. At the same
+  the two Linux VMs communicating via CAmkES connectors (this work was
+  done prior to the existence of the Microkit). At the same
   time, the network stack was pulled out of the VM and converted to a
   native CAmkES component, also communicating with the main VM.
 
