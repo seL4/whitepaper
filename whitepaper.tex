@@ -587,7 +587,7 @@
   level properties, \autoref{f:proofs} shows the chain of proofs,
   which are explained below. Importantly, we maintained the proof with the
   ongoing evolution of the kernel: Commits to the mainline kernel
-  source are only allowed if they do not break proofs, otherwise the poofs
+  source are only allowed if they do not break proofs, otherwise the proofs
   are updated as well. This \emph{proof engineering} is also a
   novelty. Our seL4 proofs constitute by
   far the largest proof base that is actively maintained. The set of proofs has by
@@ -892,7 +892,8 @@
   \begin{figure}[hb]
     \centering
     \includegraphics[width=\textwidth]{capdl}
-    \caption{Verified architecture mapping and system generation
+    \caption[Verified architecture mapping and system generation.]
+    {Verified architecture mapping and system generation
       (note that not all verification steps are of full strength
       yet). Green boxes are generated provably correct.}
     \label{f:capdl}
@@ -984,7 +985,12 @@
   fact, the capability is an encapsulation of an object reference and
   the rights it conveys to that object. In a capability-based system,
   such as seL4, invoking a capability is the one and only way of
-  performing an operation on a system object.
+  performing an operation on a system object. In fact, a system call
+  in seL4 is a capability invocation, with arguments specifying what
+  operation to perform on the object referenced by the invoked
+  capability. The kernel will then check whether the capability
+  authorises the requested operation, and immediately abort the
+  operation if it is not authorised.
 
   For example, an operation may be to call a function in a
   component. The object reference embedded in the capability then
