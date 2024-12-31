@@ -15,6 +15,7 @@ whitepaper.pdf
 *.brf
 *.out
 *.idx
+*.lof
 *.ps
 *.to?
 *.diff

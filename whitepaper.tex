@@ -5,8 +5,7 @@
 \newif \ifDraft         \Draftfalse
 \Drafttrue
 
-% Note: the draft option marks overfull lines but disables hyperlinks!
-\documentclass[english,a4paper,12pt\ifDraft,draft\fi]{report}
+\documentclass[english,a4paper,12pt]{report}
 
 \usepackage[]{sel4}
 \typeout{After loading seL4}
@@ -18,6 +17,8 @@
 %%% Section~\ref{label}. This will make ``Section'' part of the link, not
 %%% just the number.
 
+% Get bibliography into the ToC
+\usepackage[nottoc]{tocbibind}
 \usepackage{xspace}             % to fix spacing in macros producing words. Eg:
 \newcommand{\seLfour}{seL4\xspace} % use as normal text, examples below.
 
@@ -92,7 +93,7 @@
                       pdfkeywords={seL4, microkernel, performance},
                       pdfdisplaydoctitle=true}
 
-\begin{document}
+\begin{document}\raggedright
 
   %% Capitalisation of cross references
   \renewcommand{\chapterautorefname}{Chapter}
@@ -159,7 +160,8 @@
     paper. The seL4 Foundation, \thedocversion.
   \end{abstract}
 
-%  \tableofcontents
+  \tableofcontents
+  \listoffigures
 
 %  \cleardoublepage
 
@@ -445,7 +447,7 @@
   component frameworks for seL4, all open source: The Microkit, CAmkES
   and Genode.
 
-  The \href{https://github.com/seL4/microkit}{seL4 Microkit} reduces
+  The \href{https://trustworthy.systems/projects/microkit/}{seL4 Microkit} reduces
   the complex seL4 API to literally a handful of simple abstractions,
   designed around modules called \emph{protection domains}. It also
   provides a \emph{software development kit} (SDK) that makes it easy
@@ -478,12 +480,12 @@
     particular, it cannot use all of seL4's security and safety
     features.
   \item It has no assurance story. More on this in \autoref{s:microkit}.
-  \item Genode's seL4 support does not seem to be actively maintained.
+%  \item Genode's seL4 support does not seem to be actively maintained.
   \end{inparaenum}
 
   For these reasons, the Microkit is the recommended framework for
   building systems on seL4, at least as long as the static
-  architecture works.
+  architecture works. \autoref{s:microkit} presents it in more detail.
 
   \SSect{seL4 is also a hypervisor}\label{s:hyp}
 
@@ -524,7 +526,7 @@
   cannot talk to the storage driver (except through the file system),
   and the two Linux systems cannot communicate with each other.
 
-  \begin{figure}[tb]
+  \begin{figure}[b]
     \centering
     \includegraphics{vmm}
     \caption{seL4 virtualisation support with usermode VMMs.}
@@ -807,43 +809,85 @@
   \href{https://docs.sel4.systems/projects/sel4/status.html}{seL4
     project status page} for details.
 
-  \SSect{The CAmkES component framework}\label{s:camkes}
+  \SSect{The seL4 Microkit}\label{s:microkit}
+
+  The Microkit is a thin abstraction layer over seL4 that hides much
+  of seL4's complexities at the cost of imposing the restriction of a
+  static system architecture: At system configuration time, all
+  modules and their authorised communication channels are known.
 
   \begin{figure}[b]
     \centering
-    \includegraphics[width=0.6\textwidth]{camkes}
-    \caption{CAmkES components and connectors.}
-    \label{f:camkes}
+    \includegraphics[width=0.6\textwidth]{microkit}
+    \caption{Microkit abstractions.}
+    \label{f:microkit}
   \end{figure}
 
-  \href{https://trustworthy.systems/projects/TS/camkes/trustcomp.pml}{CAmkES}
-  is a component framework that allows you to reason about a
-  system architecturally, i.e.\ as a collection of sandboxed
-  components with defined communication channels. \autoref{f:camkes}
-  shows the main abstractions.
-  \begin{description}
-  \item[Components] are represented as square boxes. They represent
-     programs, code and data, encapsulated by seL4.
-  \item[Interfaces] are shown as decorations on the components. They
-    define how a component can be invoked, or can invoke others. An
-    interface is either imported (invoking an interface of another
-    component) or exported (able to be invoked by another component's
-    imported interface), except for the shared-memory interface, which
-    is symmetric.
-  \item[Connectors] connect like interfaces by linking an importing with an
-    exporting interface. Connectors in CAmkES are always one-to-one,
-    but broadcast or multicast functionality can be implemented on top
-    of this model by building components that copy inputs to multiple outputs.
-  \end{description}
+  \autoref{f:microkit} shows these abstractions (yes, that's all!) The
+  \emph{protection domain} (PD) is the process abstraction: it
+  represents a program in execution in its own, isolated address
+  space. Two PDs can be connected by a \emph{communication channel}
+  and may also share \emph{memory regions} that are mapped in one or
+  more PDs' address spaces. A PD may be a VM (running a guest OS), but
+  other PDs are oblivious to that fact.
 
-  The CAmkES system is specified in a formal \emph{architecture
-    description language} (the CAmkES ADL), which contains a precise
-  description of the components, their interfaces and the connectors
-  that link them up. The CAmkES promise to the system designer is
-  that what is specified in the ADL (and visualised as in
-  \autoref{f:camkes}) is a faithful representation of the possible
-  interactions. In particular, it promises that no interactions are
-  possible beyond those shown in the diagram.
+  \begin{Chilli}
+    Microkit further simplifies programming by imposing an
+    event-handling model. Specifically, each PD has two or three entry
+    points: \code{init()}, \code{notified()} and, optionally,
+    \code{protected()}. These are provided by the programmer and invoked
+    by the framework on particular events: \code{init} is called exactly
+    once at system initialisation time and before any of the other
+    handlers are called. \code{notified()} is invoked if the PD at the
+    other end of the channel calls the \code{notify()} API on the
+    channel, and \code{protected()} is invoked if the PD at the other
+    end of a channel calls the \code{ppcall()} API.
+
+    PDs have scheduling parameters, which include a priority.
+    \code{notify()} calls are asynchronous: they never block, and the
+    when the receiver PD's \code{notified()} function is invoked depends
+    on priorities and whether the two PDs are executing on the same core
+    or not. These calls pass no data to the receiver other than the
+    identity of the notifier, and as such behave similarly to
+    interrupts. In contrast, a \code{ppcall()} behaves like a normal
+    function call, except that the code it executes happens to be in a
+    different PD. In particular, \code{ppcall()} is synchronous, i.e.\ it blocks
+    the caller until the callee returns from its \code{protected()}
+    handler.  It can also pass arguments and return a
+    result value. To prevent deadlock,  a \code{ppcall()} is only
+    allowed from lower to higher priority.
+
+    PDs providing a \code{protected()} handler are referred to as
+    server, and the PD invoking \code{ppcall()} is called a
+    client. Servers execute on the client's \emph{scheduling context}
+    (see \autoref{s:mcs}) and core, meaning that their usage of the CPU
+    resource is properly accounted to the client.
+
+    The Microkit programming model, if used properly, makes PDs
+    location-transparent: A PD does not know whether the PD at the
+    other end of a channel is running on the same or a different
+    core. This greatly simplifies building multicore systems.
+  \end{Chilli}
+
+  The (static) architecture of a Microkit system is specified in a
+  \emph{system description file} (SDF), which specifies all the PDs of
+  the system with their scheduling parameters (and a few more
+  attributes, such as whether the PD is a VM or has the right to
+  handle interrupts), the communication channels, and memory regions
+  and how they are mapped into PDs.
+
+  The programmer writes each PD as a separate program, and links it
+  against \code{libmicrokit} to produce an executable (ELF) file for
+  each PD. The Microkit comes with an SDK, which mangles the
+  programmer-provided ELF file with a kernel binary as specified by
+  the SDF. The programmer can use the build tool of their choice
+  (which can be a simple \code{Makefile}) for building the system.
+
+  The Microkit promise to the system designer is that what is
+  specified in the SDF (and visualised as in \autoref{f:microkit}) is
+  a faithful representation of the possible interactions. In
+  particular, it promises that no interactions are possible beyond
+  those defined in the SDF.
 
   \begin{figure}[hb]
     \centering
@@ -854,38 +898,38 @@
     \label{f:capdl}
   \end{figure}
 
-  Of course, this promise depends on enforcement by seL4, and the ADL
+  Of course, this promise depends on enforcement by seL4, and the SDF
   representation must be mapped onto low-level seL4 objects and access
-  rights to them. This is what the CAmkES machinery achieves, and is
+  rights to them. This is what the Microkit machinery achieves, and is
   shown in \autoref{f:capdl}.
 
-  In the figure, the architecture (i.e.\ what is described in the ADL)
+  In the figure, the architecture (i.e.\ what is described in the SDF)
   is shown at the top. This is a fairly simple system, consisting of
-  four native components and one component that houses a virtual
+  four native PDs and one PD that houses a virtual
   machine hosting a Linux guest with a couple of networking
-  drivers. The Linux VM is only connected to other components via the
-  crypto component, which ensures that it can only access encrypted
+  drivers. The Linux VM is only connected to other PDs via the
+  crypto PD, which ensures that it can only access encrypted
   links and cannot leak data.
 
   Even this simple system maps to hundreds if not thousands of seL4
   objects, an indication of the complexity reduction provided by the
-  CAmkES component abstraction.
+  Microkit abstraction.
 
   For the seL4-level description we have another formal language,
-  called CapDL (capability distribution language). The system designer
+  called \emph{CapDL} (capability distribution language). The system designer
   never needs to deal with CapDL, it is a purely internal
-  representation. The CAmkES framework contains a compiler which
-  automatically translates CAmkES ADL into CapDL, indicated by the box
+  representation. The Microkit framework contains a compiler which
+  automatically translates the SDF into CapDL, indicated by the box
   arrow pointing left-down. The box in the left of the figure gives a
   (simplified) representation of the seL4 objects described in
   CapDL. (It is actually a simplified representation of a much simpler
-  system, basically just the two components at the top of
-  \autoref{f:camkes} and the connector between them.)
+  system, basically just two of the PDs at the top of
+  \autoref{f:microkit} and the channel between them.)
 
   The CapDL spec is a precise representation of access rights in the
   system, and it is what seL4 enforces. Which means that once the
   system gets into the state described by the CapDL spec, it is
-  guaranteed to behave as described by the CAmkES ADL spec, and
+  guaranteed to behave as described by the SDF spec, and
   therefore the architecture-level description is sufficient for
   further reasoning about security properties.
 
@@ -893,29 +937,17 @@
   described by the CapDL spec. We achieve this with a second
   automated step: We generate from CapDL the startup code that, as
   soon as seL4 itself has booted, takes control and generates all the
-  seL4 objects referenced by the spec, including the ones describing
-  active components, and distributes the \emph{capabilities} (see
-  \autoref{s:caps}) that   grant access to those objects according to
+  seL4 objects referenced by the spec, including the ones representing
+  PDs, and distributes the \emph{capabilities} (see
+  \autoref{s:caps}) that grant access to those objects according to
   the spec. At the end of the execution of this init code, the system is
   provably in the state described by the CapDL spec, and thus in the
-  state represented by the ADL spec.
+  state represented by the SDF spec.
 
-  The third thing that gets generated from the ADL spec is the
-  ``glue'' code between components. Sending data through a
-  connector requires invocation of seL4 system calls, the exact
-  details of which are hidden by the CAmkES abstraction. The glue code
-  is   setting up these system  calls. For example, an ``RPC''
-  connector abstracts the invocation of a function provided by another
-  component as a regular function call performed by the client
-  component.
-\iffalse
-  The glue-code generation is also verified, to guarantee
-  that the invocation across component boundaries is functionally
-  equivalent to executing the function's code (and using its state)
-  inside the client component (while enforcing the module interface).
-\fi
+  \code{libmicrokit}, which maps the Microkit abstractions to the seL4 API,
+  also verified, which guarantees that seL4 system calls are invoked correctly.
 
-  \textbf{Note:} At the time of writing, the proofs about CAmkES and
+  \textbf{Note:} At the time of writing, the proofs about Microkit and
   CapDL are not yet complete, but completion should not be far off.
 
   \begin{Chilli}
@@ -1349,7 +1381,7 @@
   be processed, greatly limiting network throughput and generally
   responsiveness to external events.
 
-  \SSSect{MCS support in seL4}
+  \SSSect{MCS support in seL4}\label{s:mcs}
 
   The core challenge with MCS is that the OS must provide strong
   resource isolation, but TSP is overly simplistic (and thus inflexible). In
@@ -1532,17 +1564,18 @@
   ULB autonomous helicopter. The original system ran on Linux, and in
   a first step, the team put seL4 underneath.
 
-  The next step broke out two components: The particularly untrusted
+  The next step broke out two PDs: The particularly untrusted
   camera software was moved to a second VM, also running Linux, with
-  the two Linux VMs communicating via CAmkES connectors (this work was
-  done prior to the existence of the Microkit). At the same
+  the two Linux VMs communicating via channels. At the same
   time, the network stack was pulled out of the VM and converted to a
-  native CAmkES component, also communicating with the main VM.
+  native component, also communicating with the main VM. (Note we are
+  using Microkit terminology here for ease of understanding, HACMS
+  pre-dated the Microkit and used CAmkES.)
 
   The final step pulled all other critical modules, as well as the
-  (untrusted) GPS software, into separate CAmkES components, removing
+  (untrusted) GPS software, into separate PDs, removing
   the original main VM. The final system consisted of a number of
-  CAmkES components running seL4-native code, and a single VM running
+  PDs running seL4-native code, and a single VM running
   just Linux and the camera software.
 
   The upshot was that while the initial system was readily hacked by

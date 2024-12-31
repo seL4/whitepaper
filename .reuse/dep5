@@ -5,19 +5,31 @@ Source: https://github.com/seL4/whitepaper
 
 Files:
   imgs/binary.pdf
-  imgs/camkes.pdf
+  imgs/binary.svg
   imgs/cap.pdf
+  imgs/cap.svg
   imgs/capdl.pdf
+  imgs/capdl.svg
   imgs/chilli.pdf
   imgs/deputy.pdf
+  imgs/deputy.svg
   imgs/figs.pptx
   imgs/hacms.pdf
+  imgs/hacms.svg
   imgs/hypervisor.pdf
+  imgs/hypervisor.svg
   imgs/kernel.pdf
+  imgs/kernel.svg
   imgs/l4family.pdf
+  imgs/l4family.svg
   imgs/mcs.pdf
+  imgs/mcs.svg
+  imgs/microkit.pdf
+  imgs/microkit.svg
   imgs/proofs.pdf
+  imgs/proofs.svg
   imgs/vmm.pdf
+  imgs/vmm.svg
 Copyright: 2020, Data61, CSIRO (ABN 41 687 119 230)
 License: CC-BY-SA-4.0
 
