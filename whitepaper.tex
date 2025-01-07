@@ -449,7 +449,7 @@
 
   The \href{https://trustworthy.systems/projects/microkit/}{seL4 Microkit} reduces
   the complex seL4 API to literally a handful of simple abstractions,
-  designed around modules called \emph{protection domains}. It also
+  designed around components called \emph{protection domains}. It also
   provides a \emph{software development kit} (SDK) that makes it easy
   to build and integrate separately compiled modules with a kernel
   binary to produce a bootable image. The Microkit's simplicity is
@@ -814,7 +814,7 @@
   The Microkit is a thin abstraction layer over seL4 that hides much
   of seL4's complexities at the cost of imposing the restriction of a
   static system architecture: At system configuration time, all
-  modules and their authorised communication channels are known.
+  components and their authorised communication channels are known.
 
   \begin{figure}[b]
     \centering
@@ -828,8 +828,9 @@
   represents a program in execution in its own, isolated address
   space. Two PDs can be connected by a \emph{communication channel}
   and may also share \emph{memory regions} that are mapped in one or
-  more PDs' address spaces. A PD may be a VM (running a guest OS), but
-  other PDs are oblivious to that fact.
+  more PDs' address spaces. A VM is similar to a PD in that it is an
+  isolated component, but has the additional capability of running a guest
+  OS.
 
   \begin{Chilli}
     Microkit further simplifies programming by imposing an
@@ -838,14 +839,14 @@
     \code{protected()}. These are provided by the programmer and invoked
     by the framework on particular events: \code{init} is called exactly
     once at system initialisation time and before any of the other
-    handlers are called. \code{notified()} is invoked if the PD at the
+    entry points are called. \code{notified()} is invoked if the PD at the
     other end of the channel calls the \code{notify()} API on the
     channel, and \code{protected()} is invoked if the PD at the other
     end of a channel calls the \code{ppcall()} API.
 
     PDs have scheduling parameters, which include a priority.
     \code{notify()} calls are asynchronous: they never block, and the
-    when the receiver PD's \code{notified()} function is invoked depends
+    exact time at which the receiver PD's \code{notified()} function is invoked depends
     on priorities and whether the two PDs are executing on the same core
     or not. These calls pass no data to the receiver other than the
     identity of the notifier, and as such behave similarly to
@@ -861,7 +862,9 @@
     server, and the PD invoking \code{ppcall()} is called a
     client. Servers execute on the client's \emph{scheduling context}
     (see \autoref{s:mcs}) and core, meaning that their usage of the CPU
-    resource is properly accounted to the client.
+    resource is properly accounted to the client. (This assumes that
+    the server is configured as ``passive'', which is the recommended
+    approach.)
 
     The Microkit programming model, if used properly, makes PDs
     location-transparent: A PD does not know whether the PD at the
@@ -946,10 +949,11 @@
   state represented by the SDF spec.
 
   \code{libmicrokit}, which maps the Microkit abstractions to the seL4 API,
-  also verified, which guarantees that seL4 system calls are invoked correctly.
+  was also verified, which guarantees that seL4 system calls are invoked correctly.
 
   \textbf{Note:} At the time of writing, the proofs about Microkit and
-  CapDL are not yet complete, but completion should not be far off.
+  CapDL are not yet complete and based on an older version of the
+  Microkit.  Completion is planned for the future.
 
   \begin{Chilli}
     Note also that none of the verification work mentioned deals with
