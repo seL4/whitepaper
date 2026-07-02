@@ -419,7 +419,7 @@
   cooperate and develop or port such services for seL4-based
   systems. The most important ones are device drivers, network
   protocol stacks, and file
-  systems. \href{https://docs.sel4.systems/projects/available-user-components.html}{We
+  systems. \href{https://docs.sel4.systems/examples.html}{We
     have a fair number of these}, but much  more is needed.
 
   Even compared to other microkernels, seL4's API is very low-level,
@@ -443,11 +443,12 @@
   complexities, and automate
   much of the system integration.
 
-  There are presently three main
-  component frameworks for seL4, all open source: The Microkit, CAmkES
-  and Genode.
+  There are presently three main open source
+  component frameworks for seL4: The Microkit, CAmkES
+  and Genode. Commercial frameworks are also available and listed on the
+  \href{https://sel4.systems/tools.html}{seL4 website}.
 
-  The \href{https://trustworthy.systems/projects/microkit/}{seL4 Microkit} reduces
+  The \href{https://docs.sel4.systems/projects/microkit/}{seL4 Microkit} reduces
   the complex seL4 API to literally a handful of simple abstractions,
   designed around components called \emph{protection domains}. It also
   provides a \emph{software development kit} (SDK) that makes it easy
@@ -459,7 +460,7 @@
   of most (if not all) embedded systems, including complex
   cyberphysical systems such as cars and aircraft.
 
-  \href{https://trustworthy.systems/projects/OLD/camkes/}{CAmkES},
+  \href{https://docs.sel4.systems/projects/camkes/}{CAmkES},
   a predecessor of the Microkit, is also a component
   framework for a statically-architected system. Its abstractions are
   higher level yet more complex than those of the Microkit. It also
@@ -483,9 +484,10 @@
 %  \item Genode's seL4 support does not seem to be actively maintained.
   \end{inparaenum}
 
-  For these reasons, the Microkit is the recommended framework for
-  building systems on seL4, at least as long as the static
-  architecture works. \autoref{s:microkit} presents it in more detail.
+  Of these open-source frameworks, for people new to seL4 and for building a
+  system where the static architecture works, we recommend using the Microkit
+  for its simple high-level abstractions leveraging seL4’s isolation
+  mechanisms. \autoref{s:microkit} presents it in more detail.
 
   \SSect{seL4 is also a hypervisor}\label{s:hyp}
 
@@ -806,7 +808,7 @@
   x86 and RISC-V. Some of these are more complete than others, but the
   missing bits are generally worked on or waiting for funding. Please
   refer to the
-  \href{https://docs.sel4.systems/projects/sel4/status.html}{seL4
+  \href{https://docs.sel4.systems/projects/sel4/verified-configurations.html}{seL4
     project status page} for details.
 
   \SSect{The seL4 Microkit}\label{s:microkit}
@@ -1511,7 +1513,7 @@
 
   \SSect{General considerations}
 
-  When planning to \href{https://sel4.systems/Use/}{protect the
+  When planning to \href{https://sel4.systems/About/how-to-use.html}{protect the
     security or safety of your system with seL4}, the first step
   should be to identify the critical assets you need to protect. The
   aim should be to minimise this part of your trusted computing base,
@@ -1532,7 +1534,7 @@
   modified.
 
   You furthermore will need to assess whether the
-  \href{https://docs.sel4.systems/projects/available-user-components.html}{available
+  \href{https://docs.sel4.systems/examples.html}{available
     user-level infrastructure} is sufficient for your purpose. If not,
   then this is where the community may help you. There are companies
   specialising in providing support for seL4 adoption. Also, if you
@@ -1570,7 +1572,7 @@
     \label{f:hacms}
   \end{figure}
 
-  A great example is the work our \href{https://trustworthy.systems/projects/TS/SMACCM/}{HACMS project partners} did on cyber-retrofitting the Boeing
+  A great example is the work our \href{https://trustworthy.systems/projects/OLD/SMACCM/}{HACMS project partners} did on cyber-retrofitting the Boeing
   ULB autonomous helicopter. The original system ran on Linux, and in
   a first step, the team put seL4 underneath.
 
